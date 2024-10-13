@@ -1,0 +1,11 @@
+apiVersion: v1
+appVersion: "1.0.0"
+description: A Helm chart for deploying the ACS SMS Relay software
+home: https://github.com/AlanBridgeman/acs-sms-relay
+maintainers:
+- email: alan@alanbridgeman.ca
+  name: Alan Bridgeman
+name: acs-sms-relay
+sources:
+- https://github.com/AlanBridgeman/acs-sms-relay
+version: "1.0.0"

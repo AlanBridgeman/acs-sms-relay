@@ -1,0 +1,24 @@
+replicaCount: 1
+
+fullnameOverride: ""
+
+image:
+  name: acs-sms-relay
+  repository: ""
+  tag: latest
+  pullPolicy: Always
+
+ingress:
+  className: "nginx"
+  host: ""
+
+sms: 
+  connectionString: ""
+  fromNumber: ""
+
+listmonk:
+  hostname: ""
+  username: ""
+  password: ""
+
+port: 8080

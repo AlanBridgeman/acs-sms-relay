@@ -1,0 +1,3 @@
+- Build a dashboard/UI to see statistics and verify relay.
+- Add additional API endpoints
+- Create automation to publish the Helm chart etc...

@@ -1,0 +1,25 @@
+{
+  "name": "acs-sms-relay",
+  "version": "1.0.0",
+  "description": "A simple software to relay messages from an endpoint to send as SMS messages using Azure Communication Services (ACS)",
+  "scripts": {
+    "start": "node dist/server.js",
+    "build": "tsc"
+  },
+  "repository": "https://github.com/AlanBridgeman/acs-sms-relay",
+  "author": "Alan Bridgeman <alan@alanbridgeman.ca>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/ejs": "^3.1.5",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.7.5",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@azure/communication-sms": "^1.2.0-beta.1",
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.21.1"
+  }
+}
