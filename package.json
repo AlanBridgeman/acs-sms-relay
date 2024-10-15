@@ -16,6 +16,7 @@
     "typescript": "^5.6.3"
   },
   "dependencies": {
+    "@BridgemanAccessible/listmonk-node-client": "^1.0.0",
     "@azure/communication-sms": "^1.2.0-beta.1",
     "axios": "^1.7.7",
     "dotenv": "^16.4.5",

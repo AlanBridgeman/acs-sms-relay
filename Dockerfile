@@ -4,6 +4,7 @@ FROM node
 WORKDIR /usr/src/app
 
 # Install app dependencies
+COPY .npmrc ./
 COPY package*.json ./
 RUN yarn install
 

@@ -1,5 +1,7 @@
 import express, { Application, Request, Response } from 'express';
 
+import { Campaign, APICredentials } from '@BridgemanAccessible/listmonk-node-client';
+
 import { ACS } from '../ACS';
 
 import { API as ListmonkAPI } from '../listmonk/API';
@@ -10,39 +12,30 @@ import { IRouteController } from './IRouteController';
  * Controller for sending campaigns from [Listmonk](https://listmonk.app) to recipients over SMS.
  */
 export class ListmonkController implements IRouteController {
-    /**
-     * The Listmonk API instance (used to interact with Listmonk).
-     */
-    private api: ListmonkAPI;
+    /** The default credentials to use when authenticating with Listmonk. */
+    private defaultCreds: APICredentials;
 
     /**
      * Create a new ListmonkController.
      */
     constructor() {
-        this.api = new ListmonkAPI();
-    }
-
-    /**
-     * Check if the template with the given ID is a plain text template.
-     * 
-     * By "plain text template", we mean that the template is not an HTML template.
-     * We check this by ensuring it does not start with an HTML or XML doctype declaration or tag.
-     * 
-     * @param templateId The ID of the template to check.
-     * @returns A promise that resolves to true if the template is a plain text template. Otherwise, false.
-     */
-    private async checkPlainTextTemplate(templateId: number): Promise<boolean> {
-        const plainTextTemplate = await this.api.getTemplate(templateId)
-            .then(data => {
-                if(decodeURIComponent(data.data.body).startsWith('<!DOCTYPE html>') || decodeURIComponent(data.data.body).startsWith('<html>')) {
-                    console.error('Campaign claims to be plain text. But uses an HTML template. Cannot send SMS.');
-                    return false;
-                }
-
-                return true;
-            });
+        if(typeof process.env.LISTMONK_HOST === 'undefined' || process.env.LISTMONK_HOST === null || process.env.LISTMONK_HOST === '') {
+            throw new Error('LISTMONK_HOST is not defined');
+        }
         
-        return plainTextTemplate;
+        if(typeof process.env.LISTMONK_USERNAME === 'undefined' || process.env.LISTMONK_USERNAME === null || process.env.LISTMONK_USERNAME === '') {
+            throw new Error('LISTMONK_USERNAME is not defined');
+        }
+        
+        if(typeof process.env.LISTMONK_PASSWORD === 'undefined' || process.env.LISTMONK_PASSWORD === null || process.env.LISTMONK_PASSWORD === '') {
+            throw new Error('LISTMONK_PASSWORD is not defined');
+        }
+
+        this.defaultCreds = {
+            host: process.env.LISTMONK_HOST,
+            username: process.env.LISTMONK_USERNAME,
+            password: process.env.LISTMONK_PASSWORD
+        };
     }
 
     /**
@@ -54,39 +47,40 @@ export class ListmonkController implements IRouteController {
      * @param campaignUUID The UUID of the campaign to check.
      * @returns A promise that resolves to true if the campaign is a plain text campaign. Otherwise, false.
      */
-    private async checkPlainTextCampaign(campaignUUID: string): Promise<boolean> {
+    private async checkPlainTextCampaign(campaignUUID: string, creds?: APICredentials): Promise<boolean> {
         // TODO: Verify the UUID provided matches a general UUID Regexp.
 
         // Query Listmonk for campaign data.
-        const plainTextCampaign = await this.api.getCampaigns()
-            .then(data => { // Find the campaign with the given UUID.
-                return data.data.results.find((campaign: { uuid: string, [key: string]: any }) => campaign.uuid == campaignUUID);
-            })
-            .then(campaign => {
-                // If the campaigns content type is defined and not plain text, we cannot send an SMS.
-                if(typeof campaign.content_type !== 'undefined' && campaign.content_type !== 'plain') {
-                    console.error('Campaign content type is not plain text. Cannot send SMS.');
-                    return false;
-                }
+        const campaign = await Campaign.find((campaign: Campaign) => campaign.getUUID() === campaignUUID, creds ?? this.defaultCreds);
 
-                // If the campaign uses a template, check if it is a plain text template.
-                if(typeof campaign.template_id !== 'undefined') {
-                    const usesPlainTextTemplate = this.checkPlainTextTemplate(campaign.template_id);
-                    if(!usesPlainTextTemplate) {
-                        return false;
-                    }
-                }
-
-                // If the campaign body is defined and starts with an HTML tag, we cannot send an SMS.
-                if(typeof campaign.body !== 'undefined' && decodeURIComponent(campaign.body).startsWith('<!DOCTYPE html>') || decodeURIComponent(campaign.body).startsWith('<html>')) {
-                    console.error('Campaign claims to be plain text. But the body contains HTML. Cannot send SMS.');
-                    return false;
-                }
-
-                return true;
-            });
+        // Check if we can find the campaign.
+        if(typeof campaign === 'undefined') {
+            console.error('Campaign not found.');
+            return false;
+        }
         
-        return plainTextCampaign;
+        // If the campaigns content type is defined and not plain text, we cannot send an SMS.
+        if(typeof campaign.getContentType() !== 'undefined' && campaign.getContentType() !== 'plain') {
+            console.error('Campaign content type is not plain text. Cannot send SMS.');
+            return false;
+        }
+
+        const template = await campaign.getTemplate();
+        // If the campaign uses a template, check if it is a plain text template.
+        if(typeof template !== 'undefined') {
+            if(decodeURIComponent(template.getBody()).startsWith('<!DOCTYPE html>') || decodeURIComponent(template.getBody()).startsWith('<html>')) {
+                console.error('Campaign claims to be plain text. But uses an HTML template. Cannot send SMS.');
+                return false;
+            }
+        }
+
+        // If the campaign body is defined and starts with an HTML tag, we cannot send an SMS.
+        if(typeof campaign.getCampaignBody() !== 'undefined' && decodeURIComponent(campaign.getCampaignBody()).startsWith('<!DOCTYPE html>') || decodeURIComponent(campaign.getCampaignBody()).startsWith('<html>')) {
+            console.error('Campaign claims to be plain text. But the body contains HTML. Cannot send SMS.');
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -99,7 +93,7 @@ export class ListmonkController implements IRouteController {
      * @param sendData The send data to check.
      * @returns A promise that resolves to true if the send data is a plain text message. Otherwise, false.
      */
-    private async checkPlainText(sendData: SendData): Promise<boolean> {
+    private async checkPlainText(sendData: SendData, creds?: APICredentials): Promise<boolean> {
         // Check if the content type is defined and not plain text.
         if(typeof sendData.content_type !== 'undefined' && sendData.content_type !== 'plain') {
             console.error('Send data content type is not plain text. Cannot send SMS.');
@@ -108,7 +102,7 @@ export class ListmonkController implements IRouteController {
 
         // Check if the campaign is a plain text campaign.
         // This technically, isn't strictly necessary. But, it means a lot more helpful errors.
-        const isPlainTextCampaign = await this.checkPlainTextCampaign(sendData.campaign.uuid);
+        const isPlainTextCampaign = await this.checkPlainTextCampaign(sendData.campaign.uuid, creds);
         if(!isPlainTextCampaign) {
             return false;
         }
@@ -130,12 +124,28 @@ export class ListmonkController implements IRouteController {
      */
     private async campaignSend(req: Request, res: Response): Promise<void> {
         const sendData: SendData = req.body;
+
+        const linkmost_host = req.query.linkmost_host;
+        const linkmost_user = req.query.linkmost_user;
+        const linkmost_pass = req.query.linkmost_pass;
+
+        // TODO: Fallback to default credentials if not provided rather than erroring.
+        if(typeof linkmost_host === 'undefined' || typeof linkmost_user === 'undefined' || typeof linkmost_pass === 'undefined') {
+            res.status(400).send('Bad Request');
+            return;
+        }
+
+        const creds: APICredentials = {
+            host: linkmost_host as string,
+            username: linkmost_user as string,
+            password: linkmost_pass as string
+        };
         
         // FOR DEBUGGING
         //console.log(sendData);
 
         // Check if the send data is a plain text message.
-        const usesPlainText = await this.checkPlainText(sendData);
+        const usesPlainText = await this.checkPlainText(sendData, creds);
         if(!usesPlainText) {
             res.status(400).send('Bad Request');
             return;

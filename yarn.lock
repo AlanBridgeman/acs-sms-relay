@@ -2,6 +2,13 @@
 # yarn lockfile v1
 
 
+"@BridgemanAccessible/listmonk-node-client@^1.0.0":
+  version "1.0.0"
+  resolved "https://npm.pkg.bridgemanaccessible.ca/@BridgemanAccessible/listmonk-node-client/-/listmonk-node-client-1.0.0.tgz#3a651abd9e0396148cb6b850677f5d6d8f0282fe"
+  integrity sha512-SEZDtu8UTvkTn/Y2uYkW3IRNC/X4iitS4np8VF2g81vSE1k0Vew2FN+RSiJcsoqXT6utL5sXqxux4d+9DXAVhg==
+  dependencies:
+    axios "^1.7.7"
+
 "@azure/abort-controller@^1.0.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@azure/abort-controller/-/abort-controller-1.1.0.tgz#788ee78457a55af8a1ad342acb182383d2119249"

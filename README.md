@@ -14,6 +14,9 @@ The purpose of this software is to be able to relay a message from, for example,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.3.2. [In Repository Reference](#in-repository-reference)
 4. [Contributing, Issues and Pull Request](#contributing-issues-and-pull-request)
 
+## BREAKING CHANGE
+I recently made a change where this now relies on my [Listmonk Node Client library](https://github.com/AlanBridgeman/listmonk-nodejs-client) which, at least at time of writing, I host in a private repository. So, I do have an extra `.npmrc` file in my local setup (which is copied into the docker image at build time - which is OKAY because I host my docker images privately too. But should probably figure out another way in case I ever want to publish the image). This means for others to get this working you'll have to remove or change the `@BridgemanAccessible/listmonk-node-client` dependency from the [`package.json` file](./package.json) to get this working. If your using Docker or Kubernetes you'll also have to remove or change the `COPY .npmrc ./` line in the [Dockerfile](./Dockerfile).
+
 ## Getting Started
 The easiest way to get started is to copy and complete a `.env` file (note the use of `cp` rather than `mv` because `.env.docker` gets copied into the docker image as `.env` [see section below](#envdocker) for more details):
 
